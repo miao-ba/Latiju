@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}登入畫面{% endblock %}
+{% block navbar-start %}
+    <div class="ts-tab" style="">
+    <!--
+        <div class="item tab-item" onclick="history.back()">
+            <span class="ts-icon is-huge is-arrow-left-icon"></span>
+        </div>
+    -->
+        <div class="item is-text">登入系統</div>
+    </div>
+{% endblock %}
+{% block navbar-end %}
+{% endblock %}
+{% block content %}
+    <div class="ts-app-center" style="padding-top: 2em">
+        <div class="content" style="width: 20rem">
+            <div class="ts-wrap is-vertical">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="ts-text is-label is-required">使用者帳號</div>
+                    <div class="ts-input input-required">
+                        <input type="text" style="font-family: monospace" id="username" name="username" required>
+                    </div>
+                    <div class="ts-text is-label is-required">密碼</div>
+                    <div class="ts-input input-required">
+                        <input type="password" style="font-family: monospace" id="password" name="password" required>
+                    </div>
+                    <div class="ts-divider"></div>
+                    <button id="submit-all" class="ts-button" type="submit">登入</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Snackbar: Wrong user account or password
+    <div id="notify-wrong-username-or-password" class="ts-snackbar" style="background-color: var(--ts-negative-600)">
+        <div class="content">帳號或密碼錯誤</div>
+        <button onclick="closeSnackbar('notify-wrong-username-or-password')" class="close"></button>
+    </div>
+    -->
+    
+    <!-- External scripts -->
+    {% block scripts %}
+        <script src="{% static 'js/snackbar-global.js' %}"></script>
+        <script src="{% static 'js/input-is-empty.js' %}"></script>
+    {% endblock %}
+    
+{% endblock %}

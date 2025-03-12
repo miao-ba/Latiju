@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}主頁面{% endblock %}
+{% block content %}
+    <!-- Not Login Yet! -->
+
+    {% if not user.is_authenticated %}
+        <div class="ts-wrap is-center-aligned" style="padding-bottom: 2em">
+            <p>尚未登入，跳轉中...</p>
+            <a href="/account/login">如果畫面沒有反應，按下這行字跳轉至登錄畫面。</a>
+        </div>
+        <script>
+            setTimeout(function() {
+                window.location.href = "/account/login";
+            }, 2000); // 延遲
+        </script>
+    {% else %}
+        <!-- Banners -->
+        <div class="ts-wrap is-dense is-center-aligned">
+            <div class="ts-box" style="width: 60%">
+                <div class="ts-header" style="padding: 16px; background-color: var(--ts-warning-600);">
+                    <p style="display: flex; justify-content: space-between; width: 100%; color: black">
+                        <span>最近更新</span>
+                        <span>版本 <span class="monospace">25.03.02.Stage2.Dev1</span></span>
+                    </p>
+                </div>
+                <div class="ts-divider"></div>
+                <div class="ts-content" style="padding: 16px">
+                    <!-- <p>終於把前端HTML、CSS以及控制快顯視窗架設完成，過勞了。</p> -->
+                    <ol>
+                        <li>
+                            饒了我吧。
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            <div class="ts-box" style="width: 60%">
+                <div class="ts-header" style="padding: 16px; background-color: var(--ts-gray-400);">
+                    <p style="display: flex; justify-content: space-between; width: 100%">
+                        <span>使用說明</span>
+                    </p>
+                </div>
+                <div class="ts-divider"></div>
+                <div class="ts-content" style="padding: 16px">
+                    <p style="padding-top: 2px">我總覺的這東西快要變成最終成果了。</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+{% endblock %}
+
+{% block description %}
+    
+    <!-- Main Description -->
+    
+    <div style="padding-top: 8rem"></div>
+    <div class="ts-divider"></div>
+    <div class="ts-content is-secondary is-vertically-very-padded">
+        <div class="ts-container">
+            <div class="ts-text">
+                <div class="ts-text is-huge is-bold" style="color: var(--ts-negative-500)">Under construction, not final production.</div><br>
+                Apr. 2025<br>
+                <a href="https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E9%AB%98%E9%9B%84%E7%A7%91%E6%8A%80%E5%A4%A7%E5%AD%B8%E7%AC%AC%E4%B8%80%E6%A0%A1%E5%8D%80%E5%B7%A5%E5%AD%B8%E9%99%A2/@22.75842,120.3355331,17z/data=!3m1!4b1!4m6!3m5!1s0x346e0e21fef44795:0xfa7ce41da70d86f2!8m2!3d22.75842!4d120.338108!16s%2Fg%2F11bw3d37_d?entry=ttu&g_ep=EgoyMDI0MTIwMy4wIKXMDSoASAFQAw%3D%3D" target="_blank">
+                    Data Mining & Optimization Lab, Dept. of CCE, NKUST(First Campus), Yanchao, Kaohsiung, Taiwan
+                </a><br>
+                Powered by 
+                <a href="https://tocas-ui.com/" target="_blank">TocasUI 5.0</a>, 
+                <a href="https://github.com/apexcharts/apexcharts.js" target="_blank">Apexcharts</a>, 
+                <a href="https://github.com/be5invis/Sarasa-Gothic" target="_blank">Sarasa Gothic</a>,
+                <a href="https://fonts.google.com/noto/specimen/Noto+Sans+TC" target="_blank">Noto Sans TC</a>,
+                <a href="https://fontawesome.com/" target="_blank">Font Awesome(TocasUI)</a>,
+                and <a href="https://www.svgrepo.com/" target="_blank">SVG Repo</a>.<br>
+            </div>
+        </div>
+    </div>
+    
+{% endblock %}
