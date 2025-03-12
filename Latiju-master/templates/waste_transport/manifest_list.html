@@ -6,15 +6,6 @@
 <link rel="stylesheet" href="{% static 'css/waste_transport.css' %}">
 {% endblock %}
 
-{% block navbar-start %}
-    <div class="ts-tab" style="">
-        <a class="item tab-item" href="{% url 'main' %}">
-            <span class="ts-icon is-huge is-arrow-left-icon"></span>
-        </a>
-        <div class="item is-text">聯單管理</div>
-    </div>
-{% endblock %}
-
 {% block headline %}
     <div class="ts-content is-tertiary is-vertically-padded" style="background-color: var(--ts-gray-200)">
         <div class="ts-container has-vertically-spaced">
@@ -130,7 +121,7 @@
         <!-- 聯單列表和詳細內容 -->
 <div class="ts-grid is-relaxed">
     <!-- 左側：聯單列表 -->
-    <div class="column is-4-wide" id="manifest-list-container">
+    <div class="column is-5-wide" id="manifest-list-container">
         <div class="ts-box">
             <div class="ts-content">
                 <div class="ts-header is-heavy">聯單列表</div>
@@ -191,7 +182,7 @@
     </div>
     
     <!-- 右側：聯單詳細內容 -->
-    <div class="column is-8-wide" id="manifest-detail-container">
+    <div class="column is-10-wide" id="manifest-detail-container">
         <div class="ts-box">
             <div class="ts-content">
                 <div class="ts-header is-heavy">聯單詳細內容</div>

@@ -7,7 +7,7 @@
 }
 
 .ts-badge.is-reuse {
-    background-color: var(--ts-info-500);
+    background-color: var(--ts-tonal-primary-400);
     color: var(--ts-black);
 }
 
@@ -28,6 +28,8 @@
 .manifest-card {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 12px !important;
 }
 
 .manifest-card:hover {
@@ -37,17 +39,22 @@
 
 .manifest-card.is-active {
     border-left-width: 6px !important;
-    background-color: var(--ts-gray-50);
+    background-color: rgba(var(--ts-primary-500-rgb), 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 /* 詳細視圖標籤樣式增強 */
 #detail-tabs .item {
     position: relative;
     transition: all 0.3s ease;
+    padding: 12px 16px;
+    background-color: gray;
+    border-radius: 5%;
 }
 
 #detail-tabs .item.is-active {
     font-weight: 600;
+    background-color: rgba(var(--ts-primary-500-rgb), 0.05);
 }
 
 #detail-tabs .item.is-active::after {
@@ -63,7 +70,9 @@
 #detail-tabs .item:hover {
     background-color: var(--ts-gray-50);
 }
-
+#detail-tabs{
+    margin: 15px;
+}
 /* 區塊標題樣式 */
 .section-header {
     border-left: 4px solid var(--ts-primary-500);
@@ -84,10 +93,36 @@
     overflow-y: auto;
     font-family: monospace;
     font-size: 0.85rem;
-    background-color: var(--ts-gray-50);
+    background-color: #f5f5f5;
     padding: 1rem;
     border-radius: 0.25rem;
-    border: 1px solid var(--ts-gray-200);
+    border: 1px solid #ddd;
+    color: #333;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.csv-format-help code {
+    background-color: transparent;
+    padding: 0;
+    color: #333;
+    font-weight: 500;
+}
+
+.csv-format-help-improved {
+    background-color: #f5f5f5;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.csv-format-help-improved code {
+    color: #333;
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 /* 匯入歷史項目樣式 */
@@ -135,7 +170,7 @@
 }
 
 .conflict-table .different-value {
-    background-color: var(--ts-warning-100);
+    background-color: rgba(255, 193, 7, 0.2);
     font-weight: 600;
 }
 
@@ -204,108 +239,7 @@
     color: var(--ts-gray-500);
 }
 
-/* 模態視窗樣式增強 */
-.ts-modal .content {
-    max-height: 90vh;
-    overflow-y: auto;
-    width: 95%;
-    max-width: 1200px;
-}
-
-.ts-modal .content.is-large {
-    width: 90%;
-    max-width: 1200px;
-}
-
-.ts-modal .description {
-    overflow-y: auto;
-    max-height: calc(90vh - 150px);
-}
-
-.ts-modal #import-conflict-container {
-    max-height: calc(90vh - 150px);
-    overflow-y: auto;
-}
-
-#conflict-records-container {
-    max-height: 50vh;
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
-/* 進度條樣式增強 */
-.ts-progress {
-    height: 1.5rem;
-    border-radius: 0.75rem;
-    background-color: var(--ts-gray-200);
-    overflow: hidden;
-}
-
-.ts-progress .bar {
-    height: 100%;
-    background-color: var(--ts-primary-500);
-    border-radius: 0.75rem;
-    transition: width 0.3s ease;
-}
-
-.ts-progress .text {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--ts-white);
-    font-weight: 500;
-    font-size: 0.9rem;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* 自動完成下拉樣式 */
-.autocomplete-dropdown {
-    border-radius: 0.25rem;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-    background-color: var(--ts-white);
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.autocomplete-item {
-    padding: 0.75rem 1rem;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-}
-
-.autocomplete-item:hover {
-    background-color: var(--ts-gray-100);
-}
-
-/* 聯單列表容器固定高度 */
-#manifest-list-container {
-    height: 600px;
-    width: 40%;
-}
-
-#manifest-cards {
-    height: 520px;
-    padding-right: 10px;
-}
-
-/* 聯單詳細資訊容器固定高度 */
-#manifest-detail-container {
-    height: 600px;
-    width: 60%;
-}
-
-#manifest-detail {
-    height: 520px;
-    padding-right: 10px;
-}
-
-/* Windows風格彈出視窗樣式 */
+/* Windows風格對話框樣式 */
 .windows-modal-overlay {
     display: none;
     position: fixed;
@@ -320,27 +254,21 @@
 }
 
 .windows-modal-window {
-    background-color: #f0f0f0;
-    border: 1px solid #b5b5b5;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    width: 80%;
-    max-width: 800px;
-    max-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    border-radius: 3px;
-    overflow: hidden;
+    background-color: #f8f8f8;
+    border: 1px solid #acacac;
+    border-radius: 4px;
+    max-width: 90%;
+    width: 800px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .windows-modal-titlebar {
-    background-color: #0078d7;
+    background: gray;
     color: white;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
-    cursor: default;
-    user-select: none;
+    padding: 10px 15px;
 }
 
 .windows-modal-title {
@@ -371,17 +299,102 @@
 }
 
 .windows-modal-content {
-    padding: 20px;
+    padding: 16px;
     overflow-y: auto;
     max-height: calc(80vh - 40px);
-    background-color: white;
-    border-top: 1px solid #b5b5b5;
-    flex: 1;
+    background-color:#333;
+    color: #333;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 /* 按鈕樣式 */
 .windows-style-btn {
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #d9d9d9;
+}
+
+.windows-style-btn:hover {
+    background-color: #f0f0f0;
+    border-color: #bdbdbd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 自動完成元件樣式 */
+.autocomplete-input {
+    padding-right: 30px !important;
+}
+
+.autocomplete-icon {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--ts-gray-500);
+}
+
+.autocomplete-dropdown {
+    border-radius: 4px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    background-color: white;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.autocomplete-search {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    z-index: 1;
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item.is-hover,
+.autocomplete-item:hover {
+    background-color: var(--ts-gray-50);
+}
+
+.autocomplete-no-result,
+.autocomplete-error {
+    padding: 12px;
+    text-align: center;
+    color: var(--ts-gray-600);
+}
+
+.autocomplete-error {
+    color: var(--ts-negative-500);
+}
+
+/* 固定高度的容器 */
+#manifest-list-container, #manifest-detail-container {
+    height: 700px;
+}
+
+#manifest-cards {
+    height: 520px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+#manifest-detail {
+    height: 520px;
+    overflow-y: auto;
+    padding-right: 10px;
 }
 
 /* 反應式調整 */
