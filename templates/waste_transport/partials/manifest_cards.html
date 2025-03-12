@@ -1,0 +1,55 @@
+{% if manifests %}
+    {% for item in manifests %}
+        <div class="ts-box manifest-card has-top-spaced" 
+             data-manifest-id="{{ item.manifest_id }}" 
+             data-waste-id="{{ item.waste_id }}"
+             data-type="{{ item.type }}"
+             style="border-left: 4px solid {% if item.type == 'disposal' %}var(--ts-warning-500){% else %}var(--ts-info-500){% endif %};">
+            <div class="ts-content">
+                <div class="ts-grid is-relaxed">
+                    <div class="column is-fluid">
+                        <div class="ts-checkbox">
+                            <input type="checkbox" class="manifest-checkbox" id="manifest-{{ item.type }}-{{ item.manifest_id }}-{{ item.waste_id }}">
+                            <label for="manifest-{{ item.type }}-{{ item.manifest_id }}-{{ item.waste_id }}"></label>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ts-badge is-{{ item.type }}">{{ item.type_display }}</div>
+                    </div>
+                </div>
+                
+                <div class="ts-header has-top-spaced-small">
+                    {{ item.company_name }}
+                    <div class="sub header monospace">{{ item.manifest_id }}</div>
+                </div>
+                
+                <div class="ts-grid is-relaxed has-top-spaced-small">
+                    <div class="column is-6-wide">
+                        <div class="ts-text is-description">申報日期：{{ item.manifest.report_date|date:"Y-m-d" }}</div>
+                        {% if item.type == 'disposal' %}
+                            <div class="ts-text is-description">廢棄物代碼：{{ item.manifest.waste_code }}</div>
+                        {% else %}
+                            <div class="ts-text is-description">物質代碼：{{ item.manifest.substance_code }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="column is-6-wide">
+                        <div class="ts-text is-description">申報重量：{{ item.manifest.reported_weight }} kg</div>
+                        <div class="ts-text is-description">確認狀態：
+                            {% if item.manifest.manifest_confirmation %}
+                            <span class="ts-icon is-check-icon status-confirmed"></span> 已確認
+                            {% else %}
+                            <span class="ts-icon is-xmark-icon status-pending"></span> 未確認
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="ts-empty is-centered">
+        <div class="ts-icon is-file-lines-icon"></div>
+        <div class="header">無符合條件的聯單</div>
+        <div class="description">請調整篩選條件或匯入新的聯單資料</div>
+    </div>
+{% endif %}

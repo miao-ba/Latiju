@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}聯單管理{% endblock %}
+
+{% block stylesheet %}
+<link rel="stylesheet" href="{% static 'css/waste_transport.css' %}">
+{% endblock %}
+
+{% block navbar-start %}
+    <div class="ts-tab" style="">
+        <a class="item tab-item" href="{% url 'main' %}">
+            <span class="ts-icon is-huge is-arrow-left-icon"></span>
+        </a>
+        <div class="item is-text">聯單管理</div>
+    </div>
+{% endblock %}
+
+{% block headline %}
+    <div class="ts-content is-tertiary is-vertically-padded" style="background-color: var(--ts-gray-200)">
+        <div class="ts-container has-vertically-spaced">
+            <div class="ts-header is-big is-heavy">聯單管理</div>
+            <div class="ts-text is-secondary">管理醫療廢棄物的清除聯單與再利用聯單</div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="ts-container has-vertically-padded-big">
+        <!-- 功能按鈕與統計資訊 -->
+        <div class="ts-grid is-relaxed has-bottom-spaced-large">
+            <!-- 左側：統計資訊 -->
+            <div class="column is-7-wide">
+                <div class="ts-wrap is-distant">
+                    <div class="ts-statistic">
+                        <div class="value">{{ total_count }}</div>
+                        <div class="label">總聯單數</div>
+                    </div>
+                    <div class="ts-statistic">
+                        <div class="value">{{ disposal_count }}</div>
+                        <div class="label">清除單</div>
+                    </div>
+                    <div class="ts-statistic">
+                        <div class="value">{{ reuse_count }}</div>
+                        <div class="label">再利用單</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右側：功能按鈕 -->
+            <div class="column is-5-wide">
+                <div class="ts-wrap is-right-aligned">
+                    <button id="btn-import-csv" class="ts-button is-primary is-start-icon" onclick="openImportModal()">
+                        <span class="ts-icon is-upload-icon"></span> 匯入 CSV
+                    </button>
+                    <button id="btn-export-csv" class="ts-button is-info is-start-icon" onclick="exportFilteredData()">
+                        <span class="ts-icon is-download-icon"></span> 匯出 CSV
+                    </button>
+                    <button class="ts-button is-outlined has-end-spaced-small" id="filter-toggle">
+                        <span class="ts-icon is-filter-icon"></span> 篩選條件
+                    </button>
+                    <button class="ts-button is-outlined is-start-icon" id="help-button">
+                        <span class="ts-icon is-circle-question-icon"></span> 使用說明
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 篩選條件 -->
+        <div class="ts-box has-bottom-spaced-large" id="filter-form">
+            <div class="ts-content">
+                <div class="ts-header is-heavy">篩選條件</div>
+                <form method="get" id="manifest-filter-form" class="has-top-spaced">
+                    <div class="ts-grid is-relaxed">
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">聯單類型</div>
+                            {{ form.manifest_type }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">聯單編號</div>
+                            {{ form.manifest_id }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">事業機構名稱</div>
+                            {{ form.company_name }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">確認狀態</div>
+                            {{ form.confirmation_status }}
+                        </div>
+                    </div>
+                    <div class="ts-grid is-relaxed has-top-spaced">
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">廢棄物代碼</div>
+                            {{ form.waste_code }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">廢棄物名稱</div>
+                            {{ form.waste_name }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">申報重量高於</div>
+                            {{ form.reported_weight_above }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">申報重量低於</div>
+                            {{ form.reported_weight_below }}
+                        </div>
+                    </div>
+                    <div class="ts-grid is-relaxed has-top-spaced">
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">申報日期從</div>
+                            {{ form.report_date_from }}
+                        </div>
+                        <div class="column is-3-wide">
+                            <div class="ts-text is-label">申報日期至</div>
+                            {{ form.report_date_to }}
+                        </div>
+                        <div class="column is-6-wide">
+                            <div class="ts-wrap is-right-aligned has-top-spaced-large">
+                                <button type="button" class="ts-button is-outlined is-start-icon" onclick="clearFilterForm()">
+                                    <span class="ts-icon is-trash-can-icon"></span> 清空條件
+                                </button>
+                                <button type="submit" class="ts-button is-primary is-start-icon">
+                                    <span class="ts-icon is-search-icon"></span> 搜尋
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 聯單列表和詳細內容 -->
+        <div class="ts-grid is-relaxed">
+            <!-- 左側：聯單列表 -->
+            <div class="column is-6-wide" id="manifest-list-container">
+                <div class="ts-box">
+                    <div class="ts-content">
+                        <div class="ts-header is-heavy">聯單列表</div>
+                        <div class="ts-text is-description has-top-spaced">
+                            點擊聯單卡片可在右側查看詳細資料
+                        </div>
+                        
+                        <!-- 批次操作工具列 -->
+                        <div class="ts-content has-top-spaced">
+                            <div class="ts-grid">
+                                <div class="column is-fluid">
+                                    <div class="ts-checkbox">
+                                        <input type="checkbox" id="select-all-manifests">
+                                        <label for="select-all-manifests">全選</label>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <div class="ts-wrap">
+                                        <button class="ts-button is-small is-negative is-disabled" id="batch-delete-btn">
+                                            <span class="ts-icon is-trash-can-icon"></span> 移除選取
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 卡片列表 -->
+                        <div id="manifest-cards" class="has-top-spaced-large">
+                            {% include "waste_transport/partials/manifest_cards.html" with manifests=manifests %}
+                        </div>
+                        
+                        <!-- 分頁 -->
+                        {% if page_obj.has_other_pages %}
+                        <div class="ts-pagination is-center-aligned has-top-spaced-large">
+                            {% if page_obj.has_previous %}
+                                <a class="item" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span class="ts-icon is-angles-left-icon"></span>
+                                </a>
+                                <a class="item" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span class="ts-icon is-angle-left-icon"></span>
+                                </a>
+                            {% endif %}
+
+                            <span class="item">第 {{ page_obj.number }} 頁，共 {{ page_obj.paginator.num_pages }} 頁</span>
+
+                            {% if page_obj.has_next %}
+                                <a class="item" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span class="ts-icon is-angle-right-icon"></span>
+                                </a>
+                                <a class="item" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                                    <span class="ts-icon is-angles-right-icon"></span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右側：聯單詳細內容 -->
+            <div class="column is-6-wide" id="manifest-detail-container">
+                <div class="ts-box">
+                    <div class="ts-content">
+                        <div class="ts-header is-heavy">聯單詳細內容</div>
+                        <div class="ts-text is-description has-top-spaced">
+                            請從左側選擇一筆聯單查看詳細資料
+                        </div>
+                        <div id="manifest-detail" class="has-top-spaced">
+                            <!-- 詳細內容會透過 AJAX 加載於此 -->
+                            <div class="ts-empty is-centered">
+                                <div class="ts-icon is-file-lines-icon"></div>
+                                <div class="header">尚未選取聯單</div>
+                                <div class="description">請從左側列表中選擇一筆聯單以查看詳細資料</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 匯入 CSV 模態對話框 -->
+    <div class="ts-modal" id="import-modal">
+        <div class="content">
+            <div class="header">匯入 CSV 聯單資料</div>
+            <div class="description">
+                <form id="csv-import-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="ts-grid is-relaxed">
+                        <div class="column is-6-wide">
+                            <div class="ts-text is-label">{{ import_form.csv_file.label }}</div>
+                            {{ import_form.csv_file }}
+                            <div class="ts-text is-description has-top-spaced-small" id="file-feedback">
+                                {{ import_form.csv_file.help_text }}
+                            </div>
+                        </div>
+                        <div class="column is-6-wide">
+                            <div class="ts-text is-label">{{ import_form.import_type.label }}</div>
+                            {{ import_form.import_type }}
+                            <div class="ts-text is-description has-top-spaced-small">
+                                選擇要匯入的聯單類型
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ts-grid is-relaxed has-top-spaced">
+                        <div class="column is-6-wide">
+                            <div class="ts-text is-label">{{ import_form.conflict_resolution.label }}</div>
+                            {{ import_form.conflict_resolution }}
+                            <div class="ts-text is-description has-top-spaced-small">
+                                選擇當遇到重複聯單編號時的處理方式，建議選擇「詢問如何處理」
+                            </div>
+                        </div>
+                        <div class="column is-6-wide">
+                            <div class="ts-text is-label">最近匯入記錄</div>
+                            <div class="ts-list is-separated is-small has-top-spaced-small" style="max-height: 150px; overflow-y: auto;">
+                                {% for import_record in recent_imports %}
+                                    <div class="item import-history-item is-{{ import_record.import_type }}">
+                                        <div class="ts-content">
+                                            <div class="ts-text is-bold">{{ import_record.filename }}</div>
+                                            <div class="ts-text is-description">
+                                                <span class="ts-badge is-small is-{{ import_record.import_type }}">
+                                                    {% if import_record.import_type == 'disposal' %}清除單{% else %}再利用單{% endif %}
+                                                </span>
+                                                <span>{{ import_record.import_date|date:"Y-m-d H:i" }}</span>
+                                            </div>
+                                            <div class="ts-text is-description">
+                                                總記錄：{{ import_record.total_records }}，
+                                                已匯入：{{ import_record.imported_records }}，
+                                                略過：{{ import_record.skipped_records }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- CSV 格式說明 -->
+                    <div class="ts-space"></div>
+                    <div class="ts-divider"></div>
+                    <div class="ts-header">CSV 格式說明</div>
+                    <div class="ts-tabs has-top-spaced">
+                        <a class="item is-active" data-tab="csv-disposal">清除單格式</a>
+                        <a class="item" data-tab="csv-reuse">再利用單格式</a>
+                    </div>
+                    <div class="ts-segment" data-name="csv-disposal">
+                        <div class="ts-text is-bold">必要欄位：</div>
+                        <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                            聯單編號,事業機構代碼,事業機構名稱,申報日期,廢棄物代碼,廢棄物名稱,廢棄物ID,申報重量
+                        </div>
+                        <div class="ts-text is-bold has-top-spaced">範例資料：</div>
+                        <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                            E480042710700819,E4800427,高雄榮民總醫院,2018/12/24 14:24:10,D-1801,事業活動產生之一般性垃圾,877,2.63
+                        </div>
+                    </div>
+                    <div class="ts-segment" data-name="csv-reuse" style="display: none;">
+                        <div class="ts-text is-bold">必要欄位：</div>
+                        <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                            聯單編號,事業機構代碼,事業機構名稱,申報日期,物質代碼,物質名稱,廢棄物ID,申報重量
+                        </div>
+                        <div class="ts-text is-bold has-top-spaced">範例資料：</div>
+                        <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                            E480042710700812,E4800427,高雄榮民總醫院,2018/12/24 10:59:10,R-0201,廢塑膠,9474,0.42
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="actions">
+                <button class="ts-button" onclick="closeImportModal()">取消</button>
+                <button class="ts-button is-primary" id="import-submit-btn" onclick="submitImport()">匯入</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 衝突解決模態對話框 -->
+    <div class="ts-modal" id="conflict-modal">
+        <div class="content">
+            <div class="header">解決匯入衝突</div>
+            <div class="description">
+                <p>匯入的檔案中有資料與資料庫中的記錄衝突。請選擇處理方式：</p>
+                
+                <div id="conflict-records-container">
+                    <!-- 衝突記錄會透過 JavaScript 動態添加 -->
+                </div>
+                
+                <div class="ts-space"></div>
+                <div class="ts-divider"></div>
+                <div class="ts-header">選擇衝突處理方式</div>
+                
+                <div class="ts-grid has-top-spaced">
+                    <div class="column is-6-wide">
+                        <div class="ts-radio">
+                            <input type="radio" name="conflict_resolution" value="skip" id="resolution-skip" checked>
+                            <label for="resolution-skip">略過 - 保留原始資料</label>
+                        </div>
+                        <div class="ts-text is-description has-top-spaced-small">
+                            保留資料庫中的現有資料，放棄匯入的新資料。
+                        </div>
+                    </div>
+                    <div class="column is-6-wide">
+                        <div class="ts-radio">
+                            <input type="radio" name="conflict_resolution" value="replace" id="resolution-replace">
+                            <label for="resolution-replace">取代 - 使用新資料</label>
+                        </div>
+                        <div class="ts-text is-description has-top-spaced-small">
+                            完全刪除資料庫中的現有資料，使用匯入的新資料。
+                        </div>
+                    </div>
+                </div>
+                <div class="ts-grid has-top-spaced">
+                    <div class="column is-6-wide">
+                        <div class="ts-radio">
+                            <input type="radio" name="conflict_resolution" value="keep_both" id="resolution-keep_both">
+                            <label for="resolution-keep_both">保留兩者 - 另存新資料</label>
+                        </div>
+                        <div class="ts-text is-description has-top-spaced-small">
+                            保留資料庫中的現有資料，並修改匯入資料的聯單編號使其可以同時存在。
+                        </div>
+                    </div>
+                    <div class="column is-6-wide">
+                        <div class="ts-radio">
+                            <input type="radio" name="conflict_resolution" value="smart_merge" id="resolution-smart_merge">
+                            <label for="resolution-smart_merge">智慧合併 - 合併非空欄位</label>
+                        </div>
+                        <div class="ts-text is-description has-top-spaced-small">
+                            將匯入資料中的非空值更新到現有資料中，空值則保留原始資料。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ts-button" onclick="closeConflictModal()">取消匯入</button>
+                <button class="ts-button is-primary" id="resolve-conflicts-btn" onclick="resolveConflicts()">確認處理</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 使用說明模態對話框 -->
+    <div class="ts-modal" id="help-modal">
+        <div class="content">
+            <div class="header">聯單管理使用說明</div>
+            <div class="description">
+                <div class="ts-header">功能簡介</div>
+                <p>聯單管理模組用於管理醫療廢棄物清除聯單和再利用聯單，包含以下主要功能：</p>
+                
+                <div class="ts-list is-unordered">
+                    <div class="item">
+                        <div class="ts-text is-bold">聯單瀏覽與檢視</div>
+                        <p>左側列表顯示所有聯單的基本資訊，點擊任一聯單可在右側查看詳細內容。</p>
+                    </div>
+                    <div class="item">
+                        <div class="ts-text is-bold">聯單篩選</div>
+                        <p>使用頁面上方的篩選工具可依多種條件篩選聯單，包含聯單類型、聯單編號、事業機構名稱等。</p>
+                    </div>
+                    <div class="item">
+                        <div class="ts-text is-bold">CSV 匯入與匯出</div>
+                        <p>支援從 CSV 檔案匯入聯單資料，並可將篩選結果匯出為 CSV 檔案。</p>
+                    </div>
+                </div>
+                
+                <div class="ts-header has-top-spaced">CSV 匯入格式</div>
+                <p>匯入的 CSV 檔案需包含以下必要欄位：</p>
+                
+                <div class="ts-text is-bold">清除單</div>
+                <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                    聯單編號,事業機構代碼,事業機構名稱,申報日期,廢棄物代碼,廢棄物名稱,廢棄物ID,申報重量
+                </div>
+                
+                <div class="ts-text is-bold has-top-spaced">再利用單</div>
+                <div class="ts-text monospace is-small has-top-spaced csv-format-help">
+                    聯單編號,事業機構代碼,事業機構名稱,申報日期,物質代碼,物質名稱,廢棄物ID,申報重量
+                </div>
+                
+                <div class="ts-header has-top-spaced">常見問題</div>
+                <div class="ts-list is-unordered">
+                    <div class="item">
+                        <div class="ts-text is-bold">匯入時發生衝突怎麼辦？</div>
+                        <p>當匯入的聯單編號與現有資料衝突時，系統會顯示衝突解決對話框，您可選擇保留原始資料、使用新資料、同時保留兩者或智慧合併。</p>
+                    </div>
+                    <div class="item">
+                        <div class="ts-text is-bold">如何查看特定類型的聯單？</div>
+                        <p>使用篩選工具中的「聯單類型」選項可以僅顯示清除單或再利用單。</p>
+                    </div>
+                    <div class="item">
+                        <div class="ts-text is-bold">如何查看特定時間範圍的聯單？</div>
+                        <p>使用篩選工具中的「申報日期從」和「申報日期至」選項可以篩選特定日期範圍的聯單。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="ts-button is-fluid" onclick="closeHelpModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知元件 -->
+    <div class="ts-snackbar" id="notification-snackbar">
+        <div class="content"></div>
+        <button class="close" onclick="closeNotification()"></button>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/waste_transport/manifest.js' %}"></script>
+{% endblock %}
