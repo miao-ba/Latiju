@@ -21,6 +21,7 @@ class BaseManifest(models.Model):
     manifest_confirmation = models.BooleanField(default=False, verbose_name="聯單確認")
     carrier_vehicle = models.CharField(max_length=20, null=True, blank=True, verbose_name="運載車號")
     carrier_confirmation = models.BooleanField(default=False, verbose_name="清除者確認")
+    is_visible = models.BooleanField(default=True, verbose_name="是否可見")
 
     # 共有欄位但名稱不同的欄位
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")

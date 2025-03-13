@@ -8,6 +8,8 @@ let importSessionData = null;
 let selectedManifests = new Set();
 let isImporting = false;
 let progressInterval = null;
+let applyToAll = false;
+let currentConflictResolution = 'skip';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // 頁面載入完成後初始化
@@ -224,27 +226,58 @@ function initSelectAllCheckbox() {
     // 全選/取消全選
     selectAllCheckbox.addEventListener('change', function() {
         const isChecked = this.checked;
-        const manifestCheckboxes = document.querySelectorAll('.manifest-checkbox');
         
-        manifestCheckboxes.forEach(checkbox => {
-            checkbox.checked = isChecked;
+        if (isChecked) {
+            // 獲取所有符合當前篩選條件的聯單
+            fetch('/waste_transport/get_all_manifest_ids/?' + new URLSearchParams(window.location.search))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 清空當前選擇
+                        selectedManifests.clear();
+                        
+                        // 將所有符合條件的聯單添加到選擇集合中
+                        data.manifests.forEach(manifest => {
+                            const key = `${manifest.type}|${manifest.manifest_id}|${manifest.waste_id}`;
+                            selectedManifests.add(key);
+                        });
+                        
+                        // 更新頁面上的勾選框狀態
+                        document.querySelectorAll('.manifest-checkbox').forEach(checkbox => {
+                            const card = checkbox.closest('.manifest-card');
+                            if (!card) return;
+                            
+                            const manifestId = card.dataset.manifestId;
+                            const wasteId = card.dataset.wasteId;
+                            const type = card.dataset.type;
+                            const key = `${type}|${manifestId}|${wasteId}`;
+                            
+                            checkbox.checked = selectedManifests.has(key);
+                        });
+                        
+                        // 更新批量刪除按鈕狀態
+                        updateBatchDeleteButton();
+                        
+                        // 顯示通知
+                        showNotification(`已選擇 ${selectedManifests.size} 筆聯單`, 'info');
+                    }
+                })
+                .catch(error => {
+                    console.error('獲取聯單ID時發生錯誤:', error);
+                    showNotification('獲取聯單ID時發生錯誤，請重試', 'negative');
+                });
+        } else {
+            // 取消全選
+            selectedManifests.clear();
             
-            const card = checkbox.closest('.manifest-card');
-            if (!card) return;
+            // 更新頁面上的勾選框狀態
+            document.querySelectorAll('.manifest-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
             
-            const manifestId = card.dataset.manifestId;
-            const wasteId = card.dataset.wasteId;
-            const type = card.dataset.type;
-            const key = `${type}|${manifestId}|${wasteId}`;
-            
-            if (isChecked) {
-                selectedManifests.add(key);
-            } else {
-                selectedManifests.delete(key);
-            }
-        });
-        
-        updateBatchDeleteButton();
+            // 更新批量刪除按鈕狀態
+            updateBatchDeleteButton();
+        }
     });
     
     // 單個勾選改變時更新全選狀態
@@ -341,6 +374,11 @@ function deleteSelectedManifests() {
             if (batchDeleteBtn) {
                 batchDeleteBtn.classList.add('is-disabled');
             }
+            
+            // 刪除後重新載入頁面以更新統計資訊
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } else {
             showNotification(data.error || '刪除聯單失敗', 'negative');
         }
@@ -506,6 +544,8 @@ function openImportModal() {
     // 重置匯入資料
     importSessionData = null;
     isImporting = false;
+    applyToAll = false;
+    currentConflictResolution = 'skip';
     
     // 重置提交按鈕
     const submitBtn = document.getElementById('import-submit-btn');
@@ -775,7 +815,7 @@ function submitImport() {
                 
                 data.conflicting_records.forEach((record, index) => {
                     html += `
-                        <div class="ts-box has-top-spaced">
+                        <div class="ts-box has-top-spaced conflict-record" data-index="${index}">
                             <div class="ts-content">
                                 <div class="ts-header is-heavy">${index + 1}. 聯單編號: ${record.manifest_id} (廢棄物ID: ${record.waste_id})</div>
                                 <div class="ts-text">事業機構名稱: ${record.company_name}</div>
@@ -815,12 +855,120 @@ function submitImport() {
                     html += `
                                     </tbody>
                                 </table>
+                                
+                                <div class="conflict-resolution-container" id="resolution-container-${index}">
+                                    <div class="conflict-resolution-title">選擇處理方式：</div>
+                                    <div class="conflict-resolution-options">
+                                        <div class="conflict-resolution-option">
+                                            <input type="radio" name="conflict_resolution_${index}" value="skip" id="resolution-skip-${index}" checked>
+                                            <label for="resolution-skip-${index}">略過</label>
+                                        </div>
+                                        <div class="conflict-resolution-description">保留資料庫中的現有資料，放棄匯入的新資料。</div>
+                                        
+                                        <div class="conflict-resolution-option">
+                                            <input type="radio" name="conflict_resolution_${index}" value="replace" id="resolution-replace-${index}">
+                                            <label for="resolution-replace-${index}">覆蓋</label>
+                                        </div>
+                                        <div class="conflict-resolution-description">覆蓋資料庫中的現有資料，使用匯入的新資料。</div>
+                                        
+                                        <div class="conflict-resolution-option">
+                                            <input type="radio" name="conflict_resolution_${index}" value="cancel" id="resolution-cancel-${index}">
+                                            <label for="resolution-cancel-${index}">取消</label>
+                                        </div>
+                                        <div class="conflict-resolution-description">取消整個匯入過程。</div>
+                                    </div>
+                                    
+                                    <div class="apply-to-all-checkbox">
+                                        <div class="ts-checkbox">
+                                            <input type="checkbox" id="apply-to-all-${index}" class="apply-to-all" data-index="${index}">
+                                            <label for="apply-to-all-${index}">套用到所有衝突</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="ts-grid is-relaxed has-top-spaced">
+                                    <div class="column is-6-wide">
+                                        <button class="ts-button is-fluid" onclick="processNextConflict(${index}, 'prev')">上一筆</button>
+                                    </div>
+                                    <div class="column is-6-wide">
+                                        <button class="ts-button is-fluid is-primary" onclick="processNextConflict(${index}, 'next')">下一筆</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
                 });
                 
+                // 添加底部操作按鈕
+                html += `
+                    <div class="ts-grid is-relaxed has-top-spaced-large">
+                        <div class="column is-6-wide">
+                            <button class="ts-button is-fluid" onclick="cancelResolve()">取消</button>
+                        </div>
+                        <div class="column is-6-wide">
+                            <button class="ts-button is-fluid is-primary" onclick="resolveConflicts()">完成處理</button>
+                        </div>
+                    </div>
+                `;
+                
                 recordsContainer.innerHTML = html;
+                
+                // 隱藏除了第一個以外的所有衝突記錄
+                const conflictRecords = document.querySelectorAll('.conflict-record');
+                if (conflictRecords.length > 0) {
+                    conflictRecords.forEach((record, index) => {
+                        if (index > 0) {
+                            record.style.display = 'none';
+                        }
+                    });
+                }
+                
+                // 初始化 "套用到所有" 複選框處理
+                document.querySelectorAll('.apply-to-all').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            const index = this.getAttribute('data-index');
+                            const selectedResolution = document.querySelector(`input[name="conflict_resolution_${index}"]:checked`).value;
+                            
+                            // 設置全局變數
+                            applyToAll = true;
+                            currentConflictResolution = selectedResolution;
+                            
+                            // 更新所有其他衝突的選擇
+                            document.querySelectorAll(`[name^="conflict_resolution_"]`).forEach(radio => {
+                                if (radio.value === selectedResolution) {
+                                    radio.checked = true;
+                                }
+                            });
+                            
+                            // 勾選所有 "套用到所有" 複選框
+                            document.querySelectorAll('.apply-to-all').forEach(cb => {
+                                cb.checked = true;
+                            });
+                            
+                            showNotification(`已設定所有衝突都使用：${getResolutionDisplayName(selectedResolution)}`, 'info');
+                        }
+                    });
+                });
+                
+                // 監聽單選按鈕變更
+                document.addEventListener('change', function(e) {
+                    if (e.target.name && e.target.name.startsWith('conflict_resolution_')) {
+                        const index = e.target.name.split('_')[2];
+                        const applyToAllCheckbox = document.getElementById(`apply-to-all-${index}`);
+                        
+                        if (applyToAllCheckbox && applyToAllCheckbox.checked) {
+                            // 更新所有複選框，使用當前選擇的解決方案
+                            currentConflictResolution = e.target.value;
+                            
+                            document.querySelectorAll(`[name^="conflict_resolution_"]`).forEach(radio => {
+                                if (radio.value === currentConflictResolution) {
+                                    radio.checked = true;
+                                }
+                            });
+                        }
+                    }
+                });
             }
         } else {
             // 其他錯誤
@@ -871,6 +1019,72 @@ function submitImport() {
 }
 
 /**
+ * 處理下一個或上一個衝突
+ * @param {number} currentIndex - 當前衝突索引
+ * @param {string} direction - 方向 ('next' | 'prev')
+ */
+function processNextConflict(currentIndex, direction) {
+    const conflictRecords = document.querySelectorAll('.conflict-record');
+    const totalConflicts = conflictRecords.length;
+    
+    if (totalConflicts === 0) return;
+    
+    // 隱藏當前衝突
+    conflictRecords[currentIndex].style.display = 'none';
+    
+    // 計算下一個或上一個衝突的索引
+    let nextIndex;
+    if (direction === 'next') {
+        nextIndex = currentIndex + 1;
+        if (nextIndex >= totalConflicts) {
+            // 如果是最後一個，直接呼叫解決衝突函數
+            resolveConflicts();
+            return;
+        }
+    } else {
+        nextIndex = currentIndex - 1;
+        if (nextIndex < 0) {
+            nextIndex = 0; // 如果已經是第一個，維持在第一個
+        }
+    }
+    
+    // 顯示下一個或上一個衝突
+    conflictRecords[nextIndex].style.display = 'block';
+    
+    // 如果有啟用「套用到所有」選項，則更新下一個衝突的選擇
+    if (applyToAll) {
+        const radios = document.querySelectorAll(`input[name="conflict_resolution_${nextIndex}"]`);
+        radios.forEach(radio => {
+            radio.checked = (radio.value === currentConflictResolution);
+        });
+        
+        // 勾選「套用到所有」複選框
+        const applyToAllCheckbox = document.getElementById(`apply-to-all-${nextIndex}`);
+        if (applyToAllCheckbox) {
+            applyToAllCheckbox.checked = true;
+        }
+    }
+}
+
+/**
+ * 取得衝突解決方式的顯示名稱
+ * @param {string} resolution - 解決方式代碼
+ * @returns {string} - 顯示名稱
+ */
+function getResolutionDisplayName(resolution) {
+    switch(resolution) {
+        case 'skip':
+            return '略過';
+        case 'replace':
+            return '覆蓋';
+        case 'cancel':
+            return '取消';
+        default:
+            return resolution;
+    }
+}
+
+/**
  * 解決衝突並繼續匯入
  */
 function resolveConflicts() {
@@ -880,19 +1094,62 @@ function resolveConflicts() {
         return;
     }
     
-    // 獲取選擇的衝突解決方式
-    const resolution = document.querySelector('input[name="conflict_resolution"]:checked');
-    if (!resolution) {
-        showNotification('請選擇一種衝突處理方式', 'negative');
+    // 如果啟用了「套用到所有」，則使用當前的解決方案
+    if (applyToAll) {
+        // 準備請求資料
+        const requestData = {
+            ...importSessionData,
+            conflict_resolution: currentConflictResolution,
+            apply_to_all: true
+        };
+        
+        submitResolution(requestData);
         return;
     }
+    
+    // 檢查是否有任何衝突被標記為「取消」
+    const cancelResolutions = document.querySelectorAll('input[value="cancel"]:checked');
+    if (cancelResolutions.length > 0) {
+        if (confirm('有衝突被標記為「取消」，這將取消整個匯入過程。確定要繼續嗎？')) {
+            // 準備請求資料
+            const requestData = {
+                ...importSessionData,
+                conflict_resolution: 'cancel',
+                apply_to_all: true
+            };
+            
+            submitResolution(requestData);
+        }
+        return;
+    }
+    
+    // 獲取所有衝突的解決方式
+    let conflictResolutions = [];
+    const conflictRecords = document.querySelectorAll('.conflict-record');
+    
+    conflictRecords.forEach((record, index) => {
+        const resolution = document.querySelector(`input[name="conflict_resolution_${index}"]:checked`).value;
+        conflictResolutions.push(resolution);
+    });
+    
+    // 如果所有衝突都使用相同的解決方式，則設置為套用到所有
+    const allSameResolution = conflictResolutions.every(r => r === conflictResolutions[0]);
     
     // 準備請求資料
     const requestData = {
         ...importSessionData,
-        conflict_resolution: resolution.value
+        conflict_resolution: allSameResolution ? conflictResolutions[0] : 'skip',
+        apply_to_all: allSameResolution
     };
     
+    submitResolution(requestData);
+}
+
+/**
+ * 提交衝突解決結果
+ * @param {Object} requestData - 請求資料
+ */
+function submitResolution(requestData) {
     // 設置匯入狀態
     isImporting = true;
     
@@ -1059,9 +1316,6 @@ function setupAutocomplete(inputId, endpointUrl, targetField) {
         dropdownContainer.style.width = `${input.offsetWidth}px`;
         dropdownContainer.style.maxHeight = '200px';
         dropdownContainer.style.overflowY = 'auto';
-        dropdownContainer.style.border = '1px solid #ddd';
-        dropdownContainer.style.backgroundColor = 'white';
-        dropdownContainer.style.zIndex = '1000';
         dropdownContainer.style.display = 'none';
         
         // 插入下拉菜單到輸入框之後
@@ -1073,14 +1327,7 @@ function setupAutocomplete(inputId, endpointUrl, targetField) {
     input.addEventListener('input', debounce(function() {
         const query = this.value.trim();
         
-        if (query.length < 1) {
-            dropdownContainer.style.display = 'none';
-            return;
-        }
-        
-        console.log(`搜尋: ${query}`);
-        
-        // 發送AJAX請求
+        // 無論是否有輸入都顯示下拉選單，但內容會有所不同
         fetch(`${endpointUrl}?q=${encodeURIComponent(query)}`)
             .then(response => {
                 if (!response.ok) {
@@ -1099,17 +1346,14 @@ function setupAutocomplete(inputId, endpointUrl, targetField) {
                     data.results.forEach(item => {
                         const option = document.createElement('div');
                         option.className = 'autocomplete-item';
-                        option.style.padding = '8px 12px';
-                        option.style.cursor = 'pointer';
-                        option.style.borderBottom = '1px solid #eee';
                         option.textContent = item[targetField];
                         
                         option.addEventListener('mouseover', function() {
-                            this.style.backgroundColor = '#f5f5f5';
+                            this.classList.add('is-hover');
                         });
                         
                         option.addEventListener('mouseout', function() {
-                            this.style.backgroundColor = 'white';
+                            this.classList.remove('is-hover');
                         });
                         
                         option.addEventListener('click', function() {
@@ -1132,12 +1376,27 @@ function setupAutocomplete(inputId, endpointUrl, targetField) {
                     
                     dropdownContainer.style.display = 'block';
                 } else {
-                    dropdownContainer.style.display = 'none';
+                    // 如果沒有結果但有查詢，顯示無結果
+                    if (query.length > 0) {
+                        const noResult = document.createElement('div');
+                        noResult.className = 'autocomplete-no-result';
+                        noResult.textContent = '無符合項目';
+                        dropdownContainer.appendChild(noResult);
+                        dropdownContainer.style.display = 'block';
+                    } else {
+                        // 如果沒有查詢且沒有結果，則隱藏下拉選單
+                        dropdownContainer.style.display = 'none';
+                    }
                 }
             })
             .catch(error => {
                 console.error('自動完成請求失敗:', error);
-                dropdownContainer.style.display = 'none';
+                dropdownContainer.innerHTML = '';
+                const errorElement = document.createElement('div');
+                errorElement.className = 'autocomplete-error';
+                errorElement.textContent = '載入失敗，請重試';
+                dropdownContainer.appendChild(errorElement);
+                dropdownContainer.style.display = 'block';
             });
     }, 300));
     
@@ -1150,10 +1409,8 @@ function setupAutocomplete(inputId, endpointUrl, targetField) {
     
     // 焦點事件
     input.addEventListener('focus', function() {
-        if (this.value.trim().length > 0) {
-            const event = new Event('input');
-            this.dispatchEvent(event);
-        }
+        const event = new Event('input');
+        this.dispatchEvent(event);
     });
 }
 
@@ -1185,13 +1442,13 @@ function showNotification(message, type = 'info') {
     if (!snackbar) return;
     
     // 設置樣式
-    let bgColor = 'var(--ts-gray-800)';
+    let bgColor = 'var(--gray-800)';
     if (type === 'positive') {
-        bgColor = 'var(--ts-positive-600)';
+        bgColor = 'var(--success-color)';
     } else if (type === 'negative') {
-        bgColor = 'var(--ts-negative-600)';
+        bgColor = 'var(--danger-color)';
     } else if (type === 'info') {
-        bgColor = 'var(--ts-primary-600)';
+        bgColor = 'var(--primary-color)';
     }
     
     snackbar.style.backgroundColor = bgColor;

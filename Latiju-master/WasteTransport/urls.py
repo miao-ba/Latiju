@@ -14,10 +14,13 @@ urlpatterns = [
     path('export/', views.export_manifests_csv, name='export_csv'),
     path('resolve_conflicts/', views.handle_conflict_resolution, name='resolve_conflicts'),
     
-    # 新增: 刪除多個聯單
+    # 刪除聯單
     path('delete_manifests/', views.delete_manifests, name='delete_manifests'),
     
-    # 新增: 自動完成 API
+    # 獲取所有符合條件的聯單ID，用於全選功能
+    path('get_all_manifest_ids/', views.get_all_manifest_ids, name='get_all_manifest_ids'),
+    
+    # 自動完成 API
     path('autocomplete/company_name/', views.autocomplete_company_name, name='autocomplete_company_name'),
     path('autocomplete/waste_name/', views.autocomplete_waste_name, name='autocomplete_waste_name'),
     path('autocomplete/waste_code/', views.autocomplete_waste_code, name='autocomplete_waste_code'),

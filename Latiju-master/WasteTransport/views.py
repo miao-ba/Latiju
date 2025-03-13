@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 def manifest_list(request):
     form = ManifestFilterForm(request.GET)
     
-    # 初始化查詢集
-    disposal_query = DisposalManifest.objects.all()
-    reuse_query = ReuseManifest.objects.all()
+    # 初始化查詢集 - 只查詢可見的資料
+    disposal_query = DisposalManifest.objects.filter(is_visible=True)
+    reuse_query = ReuseManifest.objects.filter(is_visible=True)
     
     # 套用篩選條件
     if form.is_valid():
@@ -162,8 +162,9 @@ def manifest_list(request):
 # 清除單詳細資訊 - AJAX
 @permission_required('importer')
 def disposal_manifest_detail(request, manifest_id, waste_id):
-    manifest = get_object_or_404(DisposalManifest, manifest_id=manifest_id, waste_id=waste_id)
+    manifest = get_object_or_404(DisposalManifest, manifest_id=manifest_id, waste_id=waste_id, is_visible=True)
     
+    # The rest of the function...
     # 如果是AJAX請求，返回HTML片段
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         html = render_to_string('waste_transport/partials/disposal_detail.html', {'manifest': manifest})
@@ -175,7 +176,7 @@ def disposal_manifest_detail(request, manifest_id, waste_id):
 # 再利用單詳細資訊 - AJAX
 @permission_required('importer')
 def reuse_manifest_detail(request, manifest_id, waste_id):
-    manifest = get_object_or_404(ReuseManifest, manifest_id=manifest_id, waste_id=waste_id)
+    manifest = get_object_or_404(ReuseManifest, manifest_id=manifest_id, waste_id=waste_id, is_visible=True)
     
     # 如果是AJAX請求，返回HTML片段
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -184,6 +185,105 @@ def reuse_manifest_detail(request, manifest_id, waste_id):
     
     # 否則返回完整頁面
     return render(request, 'waste_transport/reuse_manifest_detail.html', {'manifest': manifest})
+
+# 獲取所有符合條件的聯單ID，用於全選功能
+@permission_required('importer')
+def get_all_manifest_ids(request):
+    form = ManifestFilterForm(request.GET)
+    
+    # 初始化查詢集 - 只查詢可見的資料
+    disposal_query = DisposalManifest.objects.filter(is_visible=True)
+    reuse_query = ReuseManifest.objects.filter(is_visible=True)
+    
+    # 套用篩選條件
+    if form.is_valid():
+        data = form.cleaned_data
+        
+        # 根據聯單類型篩選
+        manifest_type = data.get('manifest_type')
+        if manifest_type == 'disposal':
+            reuse_query = ReuseManifest.objects.none()
+        elif manifest_type == 'reuse':
+            disposal_query = DisposalManifest.objects.none()
+            
+        # 聯單編號篩選
+        manifest_id = data.get('manifest_id')
+        if manifest_id:
+            disposal_query = disposal_query.filter(manifest_id__icontains=manifest_id)
+            reuse_query = reuse_query.filter(manifest_id__icontains=manifest_id)
+            
+        # 事業機構名稱篩選
+        company_name = data.get('company_name')
+        if company_name:
+            disposal_query = disposal_query.filter(company_name__icontains=company_name)
+            reuse_query = reuse_query.filter(company_name__icontains=company_name)
+            
+        # 廢棄物代碼篩選
+        waste_code = data.get('waste_code')
+        if waste_code:
+            disposal_query = disposal_query.filter(waste_code__icontains=waste_code)
+            reuse_query = reuse_query.filter(substance_code__icontains=waste_code)
+            
+        # 廢棄物名稱篩選
+        waste_name = data.get('waste_name')
+        if waste_name:
+            disposal_query = disposal_query.filter(waste_name__icontains=waste_name)
+            reuse_query = reuse_query.filter(substance_name__icontains=waste_name)
+            
+        # 申報日期篩選
+        report_date_from = data.get('report_date_from')
+        if report_date_from:
+            disposal_query = disposal_query.filter(report_date__gte=report_date_from)
+            reuse_query = reuse_query.filter(report_date__gte=report_date_from)
+            
+        report_date_to = data.get('report_date_to')
+        if report_date_to:
+            disposal_query = disposal_query.filter(report_date__lte=report_date_to)
+            reuse_query = reuse_query.filter(report_date__lte=report_date_to)
+            
+        # 申報重量篩選
+        reported_weight_below = data.get('reported_weight_below')
+        if reported_weight_below:
+            disposal_query = disposal_query.filter(reported_weight__lte=reported_weight_below)
+            reuse_query = reuse_query.filter(reported_weight__lte=reported_weight_below)
+            
+        reported_weight_above = data.get('reported_weight_above')
+        if reported_weight_above:
+            disposal_query = disposal_query.filter(reported_weight__gte=reported_weight_above)
+            reuse_query = reuse_query.filter(reported_weight__gte=reported_weight_above)
+            
+        # 確認狀態篩選
+        confirmation_status = data.get('confirmation_status')
+        if confirmation_status == 'confirmed':
+            disposal_query = disposal_query.filter(manifest_confirmation=True)
+            reuse_query = reuse_query.filter(manifest_confirmation=True)
+        elif confirmation_status == 'unconfirmed':
+            disposal_query = disposal_query.filter(manifest_confirmation=False)
+            reuse_query = reuse_query.filter(manifest_confirmation=False)
+    
+    # 提取所有符合條件的聯單ID
+    manifests = []
+    
+    # 處理清除單
+    for manifest in disposal_query.values('manifest_id', 'waste_id'):
+        manifests.append({
+            'type': 'disposal',
+            'manifest_id': manifest['manifest_id'],
+            'waste_id': manifest['waste_id']
+        })
+    
+    # 處理再利用單
+    for manifest in reuse_query.values('manifest_id', 'waste_id'):
+        manifests.append({
+            'type': 'reuse',
+            'manifest_id': manifest['manifest_id'],
+            'waste_id': manifest['waste_id']
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'manifests': manifests
+    })
 
 # CSV匯入處理 - AJAX
 @csrf_exempt
@@ -222,9 +322,9 @@ def import_csv(request):
                 
             # 檢查是否已存在
             if import_type == 'disposal':
-                existing = DisposalManifest.objects.filter(manifest_id=manifest_id, waste_id=waste_id).first()
+                existing = DisposalManifest.objects.filter(manifest_id=manifest_id, waste_id=waste_id, is_visible=True).first()
             else:
-                existing = ReuseManifest.objects.filter(manifest_id=manifest_id, waste_id=waste_id).first()
+                existing = ReuseManifest.objects.filter(manifest_id=manifest_id, waste_id=waste_id, is_visible=True).first()
                 
             if existing:
                 conflict_exists = True
@@ -298,6 +398,7 @@ def handle_conflict_resolution(request):
         import_type = data.get('import_type')
         filename = data.get('filename')
         conflict_resolution = data.get('conflict_resolution')
+        apply_to_all = data.get('apply_to_all', False)
         
         if not all([csv_data, import_type, filename, conflict_resolution]):
             return JsonResponse({'success': False, 'error': '缺少必要參數'})
@@ -308,7 +409,7 @@ def handle_conflict_resolution(request):
         rows = list(reader)
         
         # 處理匯入
-        result = process_csv_import(rows, import_type, conflict_resolution, filename)
+        result = process_csv_import(rows, import_type, conflict_resolution, filename, apply_to_all)
         return JsonResponse(result)
         
     except Exception as e:
@@ -316,7 +417,7 @@ def handle_conflict_resolution(request):
         return JsonResponse({'success': False, 'error': f"處理衝突解決時發生錯誤：{str(e)}"})
 
 # 處理CSV匯入
-def process_csv_import(rows, import_type, conflict_resolution, filename):
+def process_csv_import(rows, import_type, conflict_resolution, filename, apply_to_all=False):
     try:
         # 統計資料
         total_records = len(rows)
@@ -336,9 +437,9 @@ def process_csv_import(rows, import_type, conflict_resolution, filename):
                             row = transform_waste_record(row)
                             # 根據聯單類型處理資料
                             if import_type == 'disposal':
-                                result = handle_disposal_import(row, conflict_resolution)
+                                result = handle_disposal_import(row, conflict_resolution, apply_to_all)
                             else:  # 再利用單
-                                result = handle_reuse_import(row, conflict_resolution)
+                                result = handle_reuse_import(row, conflict_resolution, apply_to_all)
                             
                             if result:
                                 imported_records += 1
@@ -370,7 +471,7 @@ def process_csv_import(rows, import_type, conflict_resolution, filename):
         return {'success': False, 'error': f"匯入過程中發生錯誤：{str(e)}"}
 
 # 處理清除單匯入
-def handle_disposal_import(row, conflict_resolution):
+def handle_disposal_import(row, conflict_resolution, apply_to_all=False):
     try:
         # 轉換布林值欄位
         bool_fields = ['是否由貯存地起運', '聯單確認', '清除者確認', '處理者確認', '最終處置者確認']
@@ -387,7 +488,7 @@ def handle_disposal_import(row, conflict_resolution):
             
         existing_manifest = None
         try:
-            existing_manifest = DisposalManifest.objects.get(manifest_id=manifest_id, waste_id=waste_id)
+            existing_manifest = DisposalManifest.objects.get(manifest_id=manifest_id, waste_id=waste_id, is_visible=True)
         except DisposalManifest.DoesNotExist:
             existing_manifest = None
         
@@ -396,18 +497,12 @@ def handle_disposal_import(row, conflict_resolution):
             if conflict_resolution == 'skip':
                 return False
             elif conflict_resolution == 'replace':
-                existing_manifest.delete()
-            elif conflict_resolution == 'keep_both':
-                # 修改聯單編號，保留兩者
-                new_manifest_id = f"{manifest_id}_copy_{int(time.time())}"
-                row['聯單編號'] = new_manifest_id
-            elif conflict_resolution == 'smart_merge':
-                # 將新資料合併到舊資料中
-                for key, value in row.items():
-                    if value and hasattr(existing_manifest, get_model_field_name(key)):
-                        setattr(existing_manifest, get_model_field_name(key), value)
+                # 將現有聯單標記為不可見，然後創建新的
+                existing_manifest.is_visible = False
                 existing_manifest.save()
-                return True
+            elif conflict_resolution == 'cancel':
+                # 取消整個匯入過程
+                return False
         
         # 建立新的清除單記錄
         manifest = DisposalManifest(
@@ -429,6 +524,7 @@ def handle_disposal_import(row, conflict_resolution):
             manifest_confirmation=row.get('聯單確認', False),
             carrier_vehicle=row.get('運載車號', ''),
             carrier_confirmation=row.get('清除者確認', False),
+            is_visible=True,
             # 清除單特有欄位
             carrier_id=row.get('清除者代碼', ''),
             carrier_name=row.get('清除者名稱', ''),
@@ -460,7 +556,7 @@ def handle_disposal_import(row, conflict_resolution):
         return False
 
 # 處理再利用單匯入
-def handle_reuse_import(row, conflict_resolution):
+def handle_reuse_import(row, conflict_resolution, apply_to_all=False):
     try:
         # 轉換布林值欄位
         bool_fields = ['是否由貯存地起運', '聯單確認', '清除者確認', '再利用者是否確認', '產源是否已確認申報聯單內容']
@@ -477,7 +573,7 @@ def handle_reuse_import(row, conflict_resolution):
             
         existing_manifest = None
         try:
-            existing_manifest = ReuseManifest.objects.get(manifest_id=manifest_id, waste_id=waste_id)
+            existing_manifest = ReuseManifest.objects.get(manifest_id=manifest_id, waste_id=waste_id, is_visible=True)
         except ReuseManifest.DoesNotExist:
             existing_manifest = None
         
@@ -486,19 +582,12 @@ def handle_reuse_import(row, conflict_resolution):
             if conflict_resolution == 'skip':
                 return False
             elif conflict_resolution == 'replace':
-                existing_manifest.delete()
-            elif conflict_resolution == 'keep_both':
-                # 修改聯單編號，保留兩者
-                new_manifest_id = f"{manifest_id}_copy_{int(time.time())}"
-                row['聯單編號'] = new_manifest_id
-            elif conflict_resolution == 'smart_merge':
-                # 將新資料合併到舊資料中
-                for key, value in row.items():
-                    field_name = get_model_field_name(key)
-                    if value and field_name and hasattr(existing_manifest, field_name):
-                        setattr(existing_manifest, field_name, value)
+                # 將現有聯單標記為不可見，然後創建新的
+                existing_manifest.is_visible = False
                 existing_manifest.save()
-                return True
+            elif conflict_resolution == 'cancel':
+                # 取消整個匯入過程
+                return False
         
         # 建立新的再利用單記錄
         manifest = ReuseManifest(
@@ -517,6 +606,7 @@ def handle_reuse_import(row, conflict_resolution):
             manifest_confirmation=row.get('聯單確認', False),
             carrier_vehicle=row.get('運載車號', ''),
             carrier_confirmation=row.get('清除者確認', False),
+            is_visible=True,
             # 再利用單特有欄位
             waste_code=row.get('物質代碼', ''),  # 使用基本欄位存物質代碼
             waste_name=row.get('物質名稱', ''),  # 使用基本欄位存物質名稱
@@ -556,9 +646,9 @@ def handle_reuse_import(row, conflict_resolution):
 def export_manifests_csv(request):
     form = ManifestFilterForm(request.GET)
     
-    # 初始化查詢集
-    disposal_query = DisposalManifest.objects.all()
-    reuse_query = ReuseManifest.objects.all()
+    # 初始化查詢集 - 只查詢可見的資料
+    disposal_query = DisposalManifest.objects.filter(is_visible=True)
+    reuse_query = ReuseManifest.objects.filter(is_visible=True)
     
     # 套用篩選條件
     if form.is_valid():
@@ -896,26 +986,74 @@ def transform_waste_record(record):
             continue
     
     return transformed_record
-# 添加以下代碼到 WasteTransport/views.py 文件
+
+# 修改刪除聯單功能 - 變更為標記不可見
+@csrf_exempt
+@permission_required('importer')
+def delete_manifests(request):
+    """批量標記聯單為不可見"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': '僅支援POST請求'})
+    
+    try:
+        # 解析JSON資料
+        data = json.loads(request.body)
+        manifests_to_delete = data.get('manifests', [])
+        
+        if not manifests_to_delete:
+            return JsonResponse({'success': False, 'error': '未提供要移除的聯單'})
+        
+        deleted_count = 0
+        
+        with transaction.atomic():
+            for manifest in manifests_to_delete:
+                manifest_type = manifest.get('type')
+                manifest_id = manifest.get('manifestId')
+                waste_id = manifest.get('wasteId')
+                
+                if not all([manifest_type, manifest_id, waste_id]):
+                    continue
+                
+                if manifest_type == 'disposal':
+                    # 標記清除單為不可見
+                    result = DisposalManifest.objects.filter(
+                        manifest_id=manifest_id, 
+                        waste_id=waste_id,
+                        is_visible=True
+                    ).update(is_visible=False)
+                    deleted_count += result
+                elif manifest_type == 'reuse':
+                    # 標記再利用單為不可見
+                    result = ReuseManifest.objects.filter(
+                        manifest_id=manifest_id,
+                        waste_id=waste_id,
+                        is_visible=True
+                    ).update(is_visible=False)
+                    deleted_count += result
+        
+        return JsonResponse({
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'成功移除 {deleted_count} 筆聯單'
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f'移除過程中發生錯誤：{str(e)}'})
 
 # 自動完成相關視圖函數
-from django.http import JsonResponse
-from django.db.models import Q
-
-@permission_required('importer')
 def autocomplete_company_name(request):
     """自動完成事業機構名稱"""
     query = request.GET.get('q', '')
-    if len(query) < 1:
-        return JsonResponse({'results': []})
     
     # 從清除單和再利用單中收集唯一的公司名稱
     disposal_companies = DisposalManifest.objects.filter(
-        company_name__icontains=query
+        company_name__icontains=query, 
+        is_visible=True
     ).values('company_name').distinct()
     
     reuse_companies = ReuseManifest.objects.filter(
-        company_name__icontains=query
+        company_name__icontains=query, 
+        is_visible=True
     ).values('company_name').distinct()
     
     # 合併結果並去重
@@ -926,25 +1064,28 @@ def autocomplete_company_name(request):
     for company in reuse_companies:
         company_names.add(company['company_name'])
     
+    # 如果查詢為空，返回所有公司名稱
+    if not query:
+        company_names = list(company_names)
+    
     # 將結果格式化為列表字典
     results = [{'name': name} for name in sorted(list(company_names))]
     
     return JsonResponse({'results': results[:20]})  # 限制返回20個結果
 
-@permission_required('importer')
 def autocomplete_waste_name(request):
     """自動完成廢棄物名稱"""
     query = request.GET.get('q', '')
-    if len(query) < 1:
-        return JsonResponse({'results': []})
     
     # 從清除單和再利用單中收集唯一的廢棄物名稱
     disposal_wastes = DisposalManifest.objects.filter(
-        waste_name__icontains=query
+        waste_name__icontains=query,
+        is_visible=True
     ).values('waste_name').distinct()
     
     reuse_wastes = ReuseManifest.objects.filter(
-        substance_name__icontains=query
+        substance_name__icontains=query,
+        is_visible=True
     ).values('substance_name').distinct()
     
     # 合併結果並去重
@@ -955,25 +1096,28 @@ def autocomplete_waste_name(request):
     for waste in reuse_wastes:
         waste_names.add(waste['substance_name'])
     
+    # 如果查詢為空，返回所有廢棄物名稱
+    if not query:
+        waste_names = list(waste_names)
+    
     # 將結果格式化為列表字典
     results = [{'name': name} for name in sorted(list(waste_names))]
     
     return JsonResponse({'results': results[:20]})  # 限制返回20個結果
 
-@permission_required('importer')
 def autocomplete_waste_code(request):
     """自動完成廢棄物代碼"""
     query = request.GET.get('q', '')
-    if len(query) < 1:
-        return JsonResponse({'results': []})
     
     # 從清除單和再利用單中收集唯一的廢棄物代碼
     disposal_codes = DisposalManifest.objects.filter(
-        waste_code__icontains=query
+        waste_code__icontains=query,
+        is_visible=True
     ).values('waste_code').distinct()
     
     reuse_codes = ReuseManifest.objects.filter(
-        substance_code__icontains=query
+        substance_code__icontains=query,
+        is_visible=True
     ).values('substance_code').distinct()
     
     # 合併結果並去重
@@ -984,117 +1128,11 @@ def autocomplete_waste_code(request):
     for code in reuse_codes:
         waste_codes.add(code['substance_code'])
     
+    # 如果查詢為空，返回所有廢棄物代碼
+    if not query:
+        waste_codes = list(waste_codes)
+    
     # 將結果格式化為列表字典
     results = [{'code': code} for code in sorted(list(waste_codes))]
     
     return JsonResponse({'results': results[:20]})  # 限制返回20個結果
-# 添加到 WasteTransport/views.py
-
-import json
-from django.views.decorators.csrf import csrf_exempt
-from django.db import transaction
-
-@csrf_exempt
-@permission_required('importer')
-def delete_manifests(request):
-    """批量刪除聯單"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': '僅支援POST請求'})
-    
-    try:
-        # 解析JSON資料
-        data = json.loads(request.body)
-        manifests_to_delete = data.get('manifests', [])
-        
-        if not manifests_to_delete:
-            return JsonResponse({'success': False, 'error': '未提供要刪除的聯單'})
-        
-        deleted_count = 0
-        
-        with transaction.atomic():
-            for manifest in manifests_to_delete:
-                manifest_type = manifest.get('type')
-                manifest_id = manifest.get('manifestId')
-                waste_id = manifest.get('wasteId')
-                
-                if not all([manifest_type, manifest_id, waste_id]):
-                    continue
-                
-                if manifest_type == 'disposal':
-                    # 刪除清除單
-                    result = DisposalManifest.objects.filter(
-                        manifest_id=manifest_id, 
-                        waste_id=waste_id
-                    ).delete()
-                    deleted_count += result[0]
-                elif manifest_type == 'reuse':
-                    # 刪除再利用單
-                    result = ReuseManifest.objects.filter(
-                        manifest_id=manifest_id,
-                        waste_id=waste_id
-                    ).delete()
-                    deleted_count += result[0]
-        
-        return JsonResponse({
-            'success': True,
-            'deleted_count': deleted_count,
-            'message': f'成功刪除 {deleted_count} 筆聯單'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'刪除過程中發生錯誤：{str(e)}'})
-# 添加到 WasteTransport/views.py
-
-import json
-from django.views.decorators.csrf import csrf_exempt
-from django.db import transaction
-
-@csrf_exempt
-@permission_required('importer')
-def delete_manifests(request):
-    """批量刪除聯單"""
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': '僅支援POST請求'})
-    
-    try:
-        # 解析JSON資料
-        data = json.loads(request.body)
-        manifests_to_delete = data.get('manifests', [])
-        
-        if not manifests_to_delete:
-            return JsonResponse({'success': False, 'error': '未提供要刪除的聯單'})
-        
-        deleted_count = 0
-        
-        with transaction.atomic():
-            for manifest in manifests_to_delete:
-                manifest_type = manifest.get('type')
-                manifest_id = manifest.get('manifestId')
-                waste_id = manifest.get('wasteId')
-                
-                if not all([manifest_type, manifest_id, waste_id]):
-                    continue
-                
-                if manifest_type == 'disposal':
-                    # 刪除清除單
-                    result = DisposalManifest.objects.filter(
-                        manifest_id=manifest_id, 
-                        waste_id=waste_id
-                    ).delete()
-                    deleted_count += result[0]
-                elif manifest_type == 'reuse':
-                    # 刪除再利用單
-                    result = ReuseManifest.objects.filter(
-                        manifest_id=manifest_id,
-                        waste_id=waste_id
-                    ).delete()
-                    deleted_count += result[0]
-        
-        return JsonResponse({
-            'success': True,
-            'deleted_count': deleted_count,
-            'message': f'成功刪除 {deleted_count} 筆聯單'
-        })
-        
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'刪除過程中發生錯誤：{str(e)}'})

@@ -1,27 +1,59 @@
 /* 醫療廢棄物暨資源管理系統 - 聯單管理模組樣式 */
 
+:root {
+    --primary-color: #3498db;
+    --primary-dark: #2980b9;
+    --primary-light: #ebf5fb;
+    --secondary-color: #2ecc71;
+    --secondary-dark: #27ae60;
+    --secondary-light: #eafaf1;
+    --warning-color: #f39c12;
+    --warning-dark: #e67e22;
+    --warning-light: #fef5e7;
+    --danger-color: #e74c3c;
+    --danger-dark: #c0392b;
+    --danger-light: #fdedec;
+    --info-color: #3498db;
+    --info-dark: #2980b9;
+    --info-light: #ebf5fb;
+    --success-color: #2ecc71;
+    --success-dark: #27ae60;
+    --success-light: #eafaf1;
+    --gray-100: #f8f9fa;
+    --gray-200: #e9ecef;
+    --gray-300: #dee2e6;
+    --gray-400: #ced4da;
+    --gray-500: #adb5bd;
+    --gray-600: #6c757d;
+    --gray-700: #495057;
+    --gray-800: #343a40;
+    --gray-900: #212529;
+    --white: #ffffff;
+    --black: #000000;
+}
+
 /* 聯單類型標籤顏色 */
 .ts-badge.is-disposal {
-    background-color: var(--ts-warning-500);
-    color: var(--ts-black);
+    background-color: var(--warning-color);
+    color: var(--black);
 }
 
 .ts-badge.is-reuse {
-    background-color: var(--ts-tonal-primary-400);
-    color: var(--ts-black);
+    background-color: var(--info-color);
+    color: var(--white);
 }
 
 /* 狀態指示器 */
 .status-confirmed {
-    color: var(--ts-positive-500);
+    color: var(--success-color);
 }
 
 .status-pending {
-    color: var(--ts-warning-500);
+    color: var(--warning-color);
 }
 
 .status-rejected {
-    color: var(--ts-negative-500);
+    color: var(--danger-color);
 }
 
 /* 聯單卡片樣式 */
@@ -39,7 +71,7 @@
 
 .manifest-card.is-active {
     border-left-width: 6px !important;
-    background-color: rgba(var(--ts-primary-500-rgb), 0.05);
+    background-color: var(--primary-light);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -48,13 +80,15 @@
     position: relative;
     transition: all 0.3s ease;
     padding: 12px 16px;
-    background-color: gray;
-    border-radius: 5%;
+    background-color: var(--gray-200);
+    border-radius: 5px 5px 0 0;
+    color: var(--gray-700);
 }
 
 #detail-tabs .item.is-active {
     font-weight: 600;
-    background-color: rgba(var(--ts-primary-500-rgb), 0.05);
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
 }
 
 #detail-tabs .item.is-active::after {
@@ -64,18 +98,24 @@
     left: 0;
     right: 0;
     height: 3px;
-    background-color: var(--ts-primary-500);
+    background-color: var(--primary-color);
 }
 
 #detail-tabs .item:hover {
-    background-color: var(--ts-gray-50);
+    background-color: var(--gray-100);
 }
-#detail-tabs{
-    margin: 15px;
+
+#detail-tabs {
+    margin: 15px 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
 }
+
 /* 區塊標題樣式 */
 .section-header {
-    border-left: 4px solid var(--ts-primary-500);
+    border-left: 4px solid var(--primary-color);
     padding-left: 0.75rem;
     margin-bottom: 1rem;
 }
@@ -93,11 +133,11 @@
     overflow-y: auto;
     font-family: monospace;
     font-size: 0.85rem;
-    background-color: #f5f5f5;
+    background-color: var(--gray-100);
     padding: 1rem;
     border-radius: 0.25rem;
-    border: 1px solid #ddd;
-    color: #333;
+    border: 1px solid var(--gray-300);
+    color: var(--gray-800);
     white-space: pre-wrap;
     word-break: break-all;
 }
@@ -105,21 +145,21 @@
 .csv-format-help code {
     background-color: transparent;
     padding: 0;
-    color: #333;
+    color: var(--gray-800);
     font-weight: 500;
 }
 
 .csv-format-help-improved {
-    background-color: #f5f5f5;
+    background-color: var(--gray-100);
     padding: 12px;
     border-radius: 4px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--gray-300);
     overflow-x: auto;
     white-space: nowrap;
 }
 
 .csv-format-help-improved code {
-    color: #333;
+    color: var(--gray-800);
     font-family: monospace;
     font-size: 14px;
     font-weight: 500;
@@ -127,27 +167,28 @@
 
 /* 匯入歷史項目樣式 */
 .import-history-item {
-    border-left: 3px solid var(--ts-primary-400);
+    border-left: 3px solid var(--primary-color);
     padding-left: 0.75rem;
 }
 
 .import-history-item.is-disposal {
-    border-left-color: var(--ts-warning-400);
+    border-left-color: var(--warning-color);
 }
 
 .import-history-item.is-reuse {
-    border-left-color: var(--ts-info-400);
+    border-left-color: var(--info-color);
 }
 
 /* 統計數字樣式 */
 .ts-statistic .value {
     font-size: 2.5rem;
     font-weight: 700;
+    color: var(--primary-color);
 }
 
 .ts-statistic .label {
     font-size: 1rem;
-    color: var(--ts-gray-600);
+    color: var(--gray-600);
 }
 
 /* 衝突比較表格 */
@@ -159,18 +200,19 @@
 
 .conflict-table th,
 .conflict-table td {
-    border: 1px solid var(--ts-gray-300);
+    border: 1px solid var(--gray-300);
     padding: 0.5rem;
     font-size: 0.9rem;
 }
 
 .conflict-table th {
-    background-color: var(--ts-gray-100);
+    background-color: var(--gray-100);
     text-align: left;
+    color: var(--gray-800);
 }
 
 .conflict-table .different-value {
-    background-color: rgba(255, 193, 7, 0.2);
+    background-color: var(--warning-light);
     font-weight: 600;
 }
 
@@ -183,8 +225,8 @@
     left: 50%;
     transform: translateX(-50%);
     min-width: 300px;
-    background-color: var(--ts-gray-800);
-    color: white;
+    background-color: var(--gray-800);
+    color: var(--white);
     padding: 16px;
     border-radius: 4px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -224,19 +266,19 @@
 
 .ts-empty .ts-icon {
     font-size: 3rem;
-    color: var(--ts-gray-400);
+    color: var(--gray-400);
     margin-bottom: 1rem;
 }
 
 .ts-empty .header {
     font-size: 1.5rem;
     font-weight: 600;
-    color: var(--ts-gray-700);
+    color: var(--gray-700);
     margin-bottom: 0.5rem;
 }
 
 .ts-empty .description {
-    color: var(--ts-gray-500);
+    color: var(--gray-500);
 }
 
 /* Windows風格對話框樣式 */
@@ -254,8 +296,8 @@
 }
 
 .windows-modal-window {
-    background-color: #f8f8f8;
-    border: 1px solid #acacac;
+    background-color: var(--white);
+    border: 1px solid var(--gray-300);
     border-radius: 4px;
     max-width: 90%;
     width: 800px;
@@ -263,8 +305,8 @@
 }
 
 .windows-modal-titlebar {
-    background: gray;
-    color: white;
+    background: var(--primary-color);
+    color: var(--white);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -283,7 +325,7 @@
 .windows-modal-close {
     background: none;
     border: none;
-    color: white;
+    color: var(--white);
     font-size: 18px;
     font-weight: bold;
     cursor: pointer;
@@ -295,15 +337,15 @@
 }
 
 .windows-modal-close:hover {
-    background-color: #e81123;
+    background-color: var(--danger-color);
 }
 
 .windows-modal-content {
     padding: 16px;
     overflow-y: auto;
     max-height: calc(80vh - 40px);
-    background-color:#333;
-    color: #333;
+    background-color: var(--white);
+    color: var(--gray-800);
     font-size: 14px;
     line-height: 1.5;
 }
@@ -312,12 +354,16 @@
 .windows-style-btn {
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--gray-300);
+    background-color: var(--white);
+    color: var(--gray-800);
+    padding: 6px 12px;
+    border-radius: 4px;
 }
 
 .windows-style-btn:hover {
-    background-color: #f0f0f0;
-    border-color: #bdbdbd;
+    background-color: var(--gray-100);
+    border-color: var(--gray-400);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -332,24 +378,25 @@
     top: 50%;
     transform: translateY(-50%);
     pointer-events: none;
-    color: var(--ts-gray-500);
+    color: var(--gray-500);
 }
 
 .autocomplete-dropdown {
     border-radius: 4px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    background-color: white;
+    background-color: var(--white);
     max-height: 300px;
     overflow-y: auto;
+    border: 1px solid var(--gray-300);
 }
 
 .autocomplete-search {
     position: sticky;
     top: 0;
-    background-color: white;
+    background-color: var(--white);
     padding: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--gray-200);
     z-index: 1;
 }
 
@@ -357,7 +404,8 @@
     padding: 8px 12px;
     cursor: pointer;
     transition: background-color 0.2s;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-800);
 }
 
 .autocomplete-item:last-child {
@@ -366,18 +414,18 @@
 
 .autocomplete-item.is-hover,
 .autocomplete-item:hover {
-    background-color: var(--ts-gray-50);
+    background-color: var(--primary-light);
 }
 
 .autocomplete-no-result,
 .autocomplete-error {
     padding: 12px;
     text-align: center;
-    color: var(--ts-gray-600);
+    color: var(--gray-600);
 }
 
 .autocomplete-error {
-    color: var(--ts-negative-500);
+    color: var(--danger-color);
 }
 
 /* 固定高度的容器 */
@@ -395,6 +443,92 @@
     height: 520px;
     overflow-y: auto;
     padding-right: 10px;
+}
+
+/* 篩選區塊樣式 */
+#filter-form {
+    background-color: var(--gray-100);
+    border: 1px solid var(--gray-300);
+    border-radius: 4px;
+}
+
+#filter-form .ts-text.is-label {
+    color: var(--gray-700);
+    font-weight: 500;
+}
+
+#filter-form .ts-input,
+#filter-form .ts-select {
+    background-color: var(--white);
+    border: 1px solid var(--gray-300);
+    color: var(--gray-800);
+}
+
+#filter-form .ts-input:focus,
+#filter-form .ts-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* 下拉選單統一樣式 */
+.ts-select {
+    background-color: var(--white);
+    border: 1px solid var(--gray-300);
+    color: var(--gray-800);
+}
+
+.ts-select select {
+    color: var(--gray-800);
+    background-color: var(--white);
+}
+
+.ts-select select:focus {
+    border-color: var(--primary-color);
+}
+
+/* 衝突解析樣式 */
+.conflict-resolution-container {
+    padding: 15px;
+    background-color: var(--gray-100);
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border: 1px solid var(--gray-300);
+}
+
+.conflict-resolution-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 10px;
+}
+
+.conflict-resolution-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.conflict-resolution-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.conflict-resolution-option label {
+    cursor: pointer;
+    color: var(--gray-800);
+}
+
+.conflict-resolution-description {
+    color: var(--gray-600);
+    font-size: 13px;
+    margin-left: 24px;
+}
+
+.apply-to-all-checkbox {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--gray-300);
 }
 
 /* 反應式調整 */
