@@ -615,11 +615,14 @@ def handle_disposal_import(row, conflict_resolution, apply_to_all=False):
                 waste_name=row.get('廢棄物名稱', ''),
             )
             
-            # 9. 建立申報單
+            # 9. 建立申報單，確保report_time有值
+            report_date = parse_date(row.get('申報日期', None))
+            report_time = parse_time(row.get('申報時間', 0))  # 使用0作為預設值，確保parse_time能處理
+            
             Report.objects.create(
                 manifest=manifest,
-                report_date=parse_date(row.get('申報日期', None)),
-                report_time=parse_time(row.get('申報時間', None)),
+                report_date=report_date if report_date else datetime.now().date(),  # 提供今天的日期作為預設值
+                report_time=report_time,  # 已修改的parse_time將確保返回有效時間值
                 transport_date=parse_date(row.get('清運日期', None)),
                 transport_time=parse_time(row.get('清運時間', None)),
                 reported_weight=parse_float(row.get('申報重量', 0)),
@@ -661,7 +664,7 @@ def handle_disposal_import(row, conflict_resolution, apply_to_all=False):
     except Exception as e:
         logger.error(f"處理清除單匯入時發生錯誤: {e}", exc_info=True)
         return False
-
+# 處理再利用單匯入
 # 處理再利用單匯入
 def handle_reuse_import(row, conflict_resolution, apply_to_all=False):
     """
@@ -779,11 +782,14 @@ def handle_reuse_import(row, conflict_resolution, apply_to_all=False):
                 substance_name=row.get('物質名稱', ''),
             )
             
-            # 9. 建立申報單
+            # 9. 建立申報單，確保report_time有值
+            report_date = parse_date(row.get('申報日期', None))
+            report_time = parse_time(row.get('申報時間', 0))  # 使用0作為預設值，確保parse_time能處理
+
             Report.objects.create(
                 manifest=manifest,
-                report_date=parse_date(row.get('申報日期', None)),
-                report_time=parse_time(row.get('申報時間', None)),
+                report_date=report_date if report_date else datetime.now().date(),  # 提供今天的日期作為預設值
+                report_time=report_time,  # 已修改的parse_time將確保返回有效時間值
                 transport_date=parse_date(row.get('清運日期', None)),
                 transport_time=parse_time(row.get('清運時間', None)),
                 reported_weight=parse_float(row.get('申報重量', 0)),
@@ -931,17 +937,53 @@ def parse_date(date_str):
 
 # 輔助函數：解析時間
 def parse_time(time_str):
-    if not time_str or time_str.strip() == '':
-        return None
-        
-    formats = ['%H:%M:%S', '%H:%M']
-    for fmt in formats:
-        try:
-            return datetime.strptime(time_str, fmt).time()
-        except (ValueError, TypeError):
-            continue
+    """
+    將時間字串或浮點數轉換為時間對象
     
-    return None
+    Args:
+        time_str: 時間字串或浮點數，例如"14:30:00"或14.5（表示14:30:00）
+        
+    Returns:
+        datetime.time對象或None
+    """
+    from datetime import datetime, time
+    
+    if not time_str and time_str != 0:
+        # 如果為空但不是0，返回預設時間
+        return time(0, 0, 0)  # 預設為00:00:00
+        
+    # 嘗試將浮點數轉換為時間
+    if isinstance(time_str, (int, float)) or (isinstance(time_str, str) and time_str.replace('.', '', 1).isdigit()):
+        try:
+            # 將浮點數轉換為小時和分鐘
+            if isinstance(time_str, str):
+                time_float = float(time_str)
+            else:
+                time_float = time_str
+                
+            hours = int(time_float)
+            minutes = int((time_float % 1) * 60)
+            seconds = int(((time_float % 1) * 60 % 1) * 60)
+            
+            # 確保時間在有效範圍內
+            if 0 <= hours < 24 and 0 <= minutes < 60 and 0 <= seconds < 60:
+                return time(hours, minutes, seconds)
+            else:
+                return time(0, 0, 0)  # 預設為00:00:00
+        except (ValueError, TypeError):
+            pass
+    
+    # 如果不是浮點數，嘗試解析字串格式時間
+    if isinstance(time_str, str):
+        formats = ['%H:%M:%S', '%H:%M']
+        for fmt in formats:
+            try:
+                return datetime.strptime(time_str.strip(), fmt).time()
+            except (ValueError, TypeError):
+                continue
+    
+    # 如果所有方法都失敗，返回預設時間
+    return time(0, 0, 0)  # 預設為00:00:00
 
 # 輔助函數：解析日期時間
 def parse_datetime(datetime_str):
@@ -970,7 +1012,13 @@ def parse_float(value):
 # 輔助函數：轉換聯單記錄
 def transform_waste_record(record):
     """
-    轉換聯單記錄中的日期時間欄位
+    轉換聯單記錄中的日期時間欄位，並處理浮點數格式的時間
+    
+    Args:
+        record: 原始CSV記錄
+        
+    Returns:
+        轉換後的記錄
     """
     # 日期時間欄位對應表
     datetime_keys = {
@@ -985,19 +1033,30 @@ def transform_waste_record(record):
     # 建立一個記錄的複本，避免修改原始資料
     transformed_record = record.copy()
     
+    # 直接處理可能是浮點數的時間欄位
+    time_fields = ['申報時間', '清運時間', '運送時間', '收受時間', '回收時間', '處理完成時間']
+    for field in time_fields:
+        if field in record:
+            # 確保保留原始值，即使它是浮點數
+            value = record[field]
+            transformed_record[field] = value
+    
     # 轉換日期時間欄位
     for original_key, (date_key, time_key) in datetime_keys.items():
         try:
             if original_key in record and record[original_key]:
                 # 嘗試分割日期和時間
                 datetime_str = record[original_key]
-                if ' ' in datetime_str:
+                if isinstance(datetime_str, str) and ' ' in datetime_str:
                     date_part, time_part = datetime_str.split(' ', 1)
                     transformed_record[date_key] = date_part
                     transformed_record[time_key] = time_part
                 else:
+                    # 如果只有日期部分
                     transformed_record[date_key] = datetime_str
-                    transformed_record[time_key] = None
+                    # 不要覆蓋可能已存在的時間部分
+                    if time_key not in transformed_record or not transformed_record[time_key]:
+                        transformed_record[time_key] = 0
         except Exception:
             # 如果處理失敗，保持原樣
             continue

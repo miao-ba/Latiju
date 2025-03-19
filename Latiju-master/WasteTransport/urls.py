@@ -11,7 +11,6 @@ urlpatterns = [
     path('disposal/<str:manifest_id>/<str:waste_id>', views.disposal_manifest_detail, name='disposal_manifest_detail'),
     path('reuse/<str:manifest_id>/<str:waste_id>', views.reuse_manifest_detail, name='reuse_manifest_detail'),
     path('import/', views.import_csv, name='import_csv'),
-    path('export/', views.export_manifests_csv, name='export_csv'),
     path('resolve_conflicts/', views.handle_conflict_resolution, name='resolve_conflicts'),
     
     # 刪除聯單

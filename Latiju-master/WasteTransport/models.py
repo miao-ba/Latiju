@@ -41,6 +41,7 @@ class WasteSubstance(models.Model):
     substance_id = models.AutoField(primary_key=True, verbose_name="物質ID")
     substance_code = models.CharField(max_length=10, verbose_name="物質代碼")
     substance_name = models.CharField(max_length=100, verbose_name="物質名稱")
+    substance_type = models.CharField(max_length=10, choices=SUBSTANCE_TYPES, verbose_name="物質類型")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="建立時間")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="更新時間")
 

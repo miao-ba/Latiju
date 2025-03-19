@@ -9,9 +9,8 @@ from .models import (
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
     """事業機構管理界面"""
-    list_display = ('company_id', 'company_name', 'company_type', 'company_contact', 'company_phone')
-    search_fields = ('company_id', 'company_name', 'company_contact')
-    list_filter = ('company_type',)
+    list_display = ('company_id', 'company_name')
+    search_fields = ('company_id', 'company_name')
 
 @admin.register(Process)
 class ProcessAdmin(admin.ModelAdmin):
@@ -29,20 +28,20 @@ class WasteSubstanceAdmin(admin.ModelAdmin):
 @admin.register(Carrier)
 class CarrierAdmin(admin.ModelAdmin):
     """清除者管理界面"""
-    list_display = ('carrier_id', 'carrier_name', 'carrier_contact', 'carrier_phone')
-    search_fields = ('carrier_id', 'carrier_name', 'carrier_contact')
+    list_display = ('carrier_id', 'carrier_name')
+    search_fields = ('carrier_id', 'carrier_name')
 
 @admin.register(Processor)
 class ProcessorAdmin(admin.ModelAdmin):
     """處理者管理界面"""
-    list_display = ('processor_id', 'processor_name', 'processor_contact', 'processor_phone')
-    search_fields = ('processor_id', 'processor_name', 'processor_contact')
+    list_display = ('processor_id', 'processor_name')
+    search_fields = ('processor_id', 'processor_name')
 
 @admin.register(Reuser)
 class ReuserAdmin(admin.ModelAdmin):
     """再利用者管理界面"""
-    list_display = ('reuser_id', 'reuser_name', 'reuser_nature', 'reuser_contact', 'reuser_phone')
-    search_fields = ('reuser_id', 'reuser_name', 'reuser_contact')
+    list_display = ('reuser_id', 'reuser_name', 'reuser_nature')
+    search_fields = ('reuser_id', 'reuser_name')
     list_filter = ('reuser_nature',)
 
 @admin.register(Vehicle)
